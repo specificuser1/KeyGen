@@ -6,8 +6,8 @@
     "embed_color": "#FF0000",
     "bot_avatar_url": "https://cdn.discordapp.com/attachments/1431752584154189828/1499870171026948107/1000011560.png?ex=69f65e73&is=69f50cf3&hm=f9c5320a58749dbb1f178804f313a626621c22b54f6d823f683d5ff139a32a01&",
     "log_channel_id": "1431752583801995388",
-    "allowed_role_ids": ["1499870411435933737", "1431752582656688170"],
-    "owner_ids": ["1262027340129505290"],
+    "allowed_role_ids": ["1499870411435933737"],
+    "owner_ids": [1262027340129505290],
     "category_names": {
         "BP": "BP Keys",
         "HK": "HK Keys"
