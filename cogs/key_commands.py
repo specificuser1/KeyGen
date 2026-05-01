@@ -12,17 +12,12 @@ class KeyCommands(commands.Cog):
         
     async def check_permission(self, interaction: discord.Interaction) -> bool:
         """Check if user has permission to use commands"""
-        # Check if user is owner
         if interaction.user.id in self.bot.config.get('owner_ids', []):
             return True
             
-        # Check if user has allowed role
         user_roles = [role.id for role in interaction.user.roles]
-        allowed_roles = self.bot.config.get('allowed_role_ids', [])
-        
-        # Convert role IDs to int for comparison
         allowed_roles_int = []
-        for role_id in allowed_roles:
+        for role_id in self.bot.config.get('allowed_role_ids', []):
             try:
                 allowed_roles_int.append(int(role_id))
             except (ValueError, TypeError):
@@ -45,35 +40,12 @@ class KeyCommands(commands.Cog):
                     files[file.replace('.txt', '')] = len(keys)
         return files
     
-    def get_random_key(self, file_path):
-        if not os.path.exists(file_path):
-            return None
-        
-        with open(file_path, 'r') as f:
-            keys = [line.strip() for line in f if line.strip()]
-        
-        if not keys:
-            return None
-        
-        selected_key = random.choice(keys)
-        keys.remove(selected_key)
-        
-        with open(file_path, 'w') as f:
-            f.write('\n'.join(keys))
-        
-        # Save to redeem file
-        with open('./redeem.txt', 'a') as f:
-            f.write(f"{selected_key}\n")
-        
-        return selected_key
-    
-    @app_commands.command(name="bp", description="Get a BP key")
+    @app_commands.command(name="bp", description="Get BP keys from stock")
     @app_commands.describe(
-        member="Mention a member (optional)",
-        amount="Amount of keys (optional, default: 1)"
+        member="Mention a member to send keys (optional)",
+        amount="Number of keys to redeem (1-100, default: 1)"
     )
     async def bp_key(self, interaction: discord.Interaction, member: discord.Member = None, amount: int = 1):
-        # Check permission
         if not await self.check_permission(interaction):
             embed = discord.Embed(
                 title="❌ Access Denied",
@@ -100,7 +72,7 @@ class KeyCommands(commands.Cog):
         if not files:
             embed = discord.Embed(
                 title="❌ No Keys Available",
-                description="There are no BP keys available in stock!",
+                description="There are no Bypass keys available in stock!",
                 color=discord.Color.red()
             )
             embed.set_footer(text=f"Powered by {self.bot.config['powered_by']} | Dev: {self.bot.config['dev_name']}")
@@ -108,15 +80,17 @@ class KeyCommands(commands.Cog):
             return
         
         embed = discord.Embed(
-            title="🎮 Available BP Keys",
+            title="Available BP Keys",
+            description="Select a duration from the dropdown below:",
             color=discord.Color.from_str(self.bot.config['embed_color'])
         )
         
         for duration, count in files.items():
             duration_name = self.bot.config['duration_names'].get(duration, duration)
+            emoji = "🔴" if count == 0 else "🟢" if count < 10 else "🟡"
             embed.add_field(
-                name=f"⏰ {duration_name}",
-                value=f"📦 Stock: {count} keys",
+                name=f"{duration_name}",
+                value=f"{emoji} Stock: **{count}** keys",
                 inline=True
             )
         
@@ -125,13 +99,12 @@ class KeyCommands(commands.Cog):
         view = KeySelectView(self.bot, "BP", member, amount)
         await interaction.followup.send(embed=embed, view=view, ephemeral=True)
     
-    @app_commands.command(name="hk", description="Get a HK key")
+    @app_commands.command(name="hk", description="Get HK keys from stock")
     @app_commands.describe(
-        member="Mention a member (optional)",
-        amount="Amount of keys (optional, default: 1)"
+        member="Mention a member to send keys (optional)",
+        amount="Number of keys to redeem (1-100, default: 1)"
     )
     async def hk_key(self, interaction: discord.Interaction, member: discord.Member = None, amount: int = 1):
-        # Check permission
         if not await self.check_permission(interaction):
             embed = discord.Embed(
                 title="❌ Access Denied",
@@ -166,15 +139,17 @@ class KeyCommands(commands.Cog):
             return
         
         embed = discord.Embed(
-            title="🎮 Available HK Keys",
+            title="Available HK Keys",
+            description="Select a duration from the dropdown below:",
             color=discord.Color.from_str(self.bot.config['embed_color'])
         )
         
         for duration, count in files.items():
             duration_name = self.bot.config['duration_names'].get(duration, duration)
+            emoji = "🔴" if count == 0 else "🟢" if count < 10 else "🟡"
             embed.add_field(
-                name=f"⏰ {duration_name}",
-                value=f"📦 Stock: {count} keys",
+                name=f"{duration_name}",
+                value=f"{emoji} Stock: **{count}** keys",
                 inline=True
             )
         
@@ -202,12 +177,12 @@ class KeySelectView(discord.ui.View):
                     with open(file_full_path, 'r') as f:
                         count = len([line for line in f if line.strip()])
                     
-                    if count > 0:  # Only show options with keys available
+                    if count > 0:
                         options.append(
                             discord.SelectOption(
                                 label=duration_name,
                                 value=duration,
-                                description=f"Stock: {count} keys",
+                                description=f"Stock: {count} keys available",
                                 emoji="🔑"
                             )
                         )
@@ -215,14 +190,13 @@ class KeySelectView(discord.ui.View):
         if options:
             self.select_menu = discord.ui.Select(
                 placeholder=f"Select {category} key duration...",
-                options=options[:25],  # Discord limit is 25 options
+                options=options[:25],
                 min_values=1,
                 max_values=1
             )
             self.select_menu.callback = self.select_callback
             self.add_item(self.select_menu)
         else:
-            # Add a disabled option if no keys available
             self.select_menu = discord.ui.Select(
                 placeholder="No keys available...",
                 options=[discord.SelectOption(label="No keys available", value="none")],
@@ -233,9 +207,10 @@ class KeySelectView(discord.ui.View):
     async def select_callback(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
         
+        # Check permission again
         if not interaction.user.id in self.bot.config.get('owner_ids', []):
             user_roles = [role.id for role in interaction.user.roles]
-            allowed_roles_int = [int(rid) for rid in self.bot.config.get('allowed_role_ids', [])]
+            allowed_roles_int = [int(rid) for rid in self.bot.config.get('allowed_role_ids', []) if rid.isdigit()]
             if not any(role_id in user_roles for role_id in allowed_roles_int):
                 embed = discord.Embed(
                     title="❌ Access Denied",
@@ -267,9 +242,9 @@ class KeySelectView(discord.ui.View):
             with open(file_path, 'w') as f:
                 f.write('\n'.join(available_keys))
             
-            # Save to redeem
+            # Save to redeem file with details
             with open('./redeem.txt', 'a') as f:
-                f.write(f"{key}\n")
+                f.write(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {self.category}/{duration} - {interaction.user.name} - {key}\n")
             
             keys.append(key)
         
@@ -283,31 +258,71 @@ class KeySelectView(discord.ui.View):
             await interaction.followup.send(embed=embed, ephemeral=True)
             return
         
-        # Send keys to channel
+        # Send keys to channel with beautiful embed
         embed = discord.Embed(
-            title="🎁 Key Redeemed Successfully",
+            title="Keys Generated",
             color=discord.Color.from_str(self.bot.config['embed_color']),
             timestamp=datetime.now()
         )
-        embed.add_field(name="📁 Category", value=self.category, inline=True)
-        embed.add_field(name="⏰ Duration", value=self.bot.config['duration_names'].get(duration, duration), inline=True)
-        embed.add_field(name="📦 Amount", value=str(len(keys)), inline=True)
         
-        keys_text = ""
-        for i, key in enumerate(keys, 1):
-            keys_text += f"**Key {i}:** ||{key}||\n"
+        embed.add_field(
+            name="- Category",
+            value=f"**{self.bot.config['category_names'].get(self.category, self.category)}**",
+            inline=True
+        )
+        embed.add_field(
+            name="- Duration",
+            value=f"**{self.bot.config['duration_names'].get(duration, duration)}**",
+            inline=True
+        )
+        embed.add_field(
+            name="- Amount",
+            value=f"**{len(keys)}** keys",
+            inline=True
+        )
         
-        embed.add_field(name="🔑 Keys", value=keys_text, inline=False)
+        # Display keys in clean format
+        if len(keys) <= 5:
+            keys_display = ""
+            for i, key in enumerate(keys, 1):
+                keys_display += f"**#{i}:** ||`{key}`||\n"
+        else:
+            keys_display = ""
+            for i, key in enumerate(keys[:5], 1):
+                keys_display += f"**#{i}:** ||`{key}`||\n"
+            keys_display += f"\n*... and {len(keys) - 5} more keys*"
+        
+        embed.add_field(
+            name="Keys",
+            value=keys_display,
+            inline=False
+        )
         
         if self.member:
-            embed.add_field(name="👤 Redeemed For", value=self.member.mention, inline=True)
+            embed.add_field(
+                name="- Generated For",
+                value=self.member.mention,
+                inline=True
+            )
+            
+            # Try to DM the member
             try:
                 dm_embed = discord.Embed(
-                    title="🎁 You Received Keys!",
+                    title="Your Generated Key!",
                     description=f"Here are your **{self.category}** keys (**{self.bot.config['duration_names'].get(duration, duration)}**):",
-                    color=discord.Color.from_str(self.bot.config['embed_color'])
+                    color=discord.Color.from_str(self.bot.config['embed_color']),
+                    timestamp=datetime.now()
                 )
-                dm_embed.add_field(name="🔑 Keys", value=keys_text, inline=False)
+                
+                dm_keys_display = ""
+                for i, key in enumerate(keys, 1):
+                    dm_keys_display += f"**#{i}:** ||`{key}`||\n"
+                
+                dm_embed.add_field(
+                    name="Your Key",
+                    value=dm_keys_display,
+                    inline=False
+                )
                 dm_embed.set_footer(text=f"Powered by {self.bot.config['powered_by']} | Dev: {self.bot.config['dev_name']}")
                 await self.member.send(embed=dm_embed)
             except:
@@ -318,36 +333,80 @@ class KeySelectView(discord.ui.View):
         # Send to channel
         await interaction.channel.send(embed=embed)
         
-        # Send log
+        # Send detailed log
+        await self.send_detailed_log(interaction, keys, duration)
+        
+        # Confirm to user
+        confirm_embed = discord.Embed(
+            title="✅ Success",
+            description=f"Generated **{len(keys)}** {self.category} key(s)!",
+            color=discord.Color.green()
+        )
+        await interaction.followup.send(embed=confirm_embed, ephemeral=True)
+    
+    async def send_detailed_log(self, interaction, keys, duration):
         log_channel_id = self.bot.config.get('log_channel_id', '0')
         if log_channel_id and log_channel_id != '0' and log_channel_id != 'YOUR_LOG_CHANNEL_ID':
             try:
                 log_channel = self.bot.get_channel(int(log_channel_id))
                 if log_channel:
                     log_embed = discord.Embed(
-                        title="🔑 Key Redeemed",
+                        title="Key Generated Log",
                         color=discord.Color.from_str(self.bot.config['embed_color']),
                         timestamp=datetime.now()
                     )
-                    log_embed.add_field(name="👤 User", value=f"{interaction.user.mention}\n(ID: {interaction.user.id})", inline=True)
-                    log_embed.add_field(name="📁 Category", value=self.category, inline=True)
-                    log_embed.add_field(name="⏰ Duration", value=self.bot.config['duration_names'].get(duration, duration), inline=True)
-                    log_embed.add_field(name="📦 Amount", value=str(len(keys)), inline=True)
-                    log_embed.add_field(name="📺 Channel", value=interaction.channel.mention, inline=True)
+                    
+                    log_embed.add_field(
+                        name="- Redeemed By",
+                        value=f"{interaction.user.mention}\n**Name:** {interaction.user.name}\n**ID:** {interaction.user.id}",
+                        inline=True
+                    )
+                    log_embed.add_field(
+                        name="- Category",
+                        value=self.bot.config['category_names'].get(self.category, self.category),
+                        inline=True
+                    )
+                    log_embed.add_field(
+                        name="- Duration",
+                        value=self.bot.config['duration_names'].get(duration, duration),
+                        inline=True
+                    )
+                    log_embed.add_field(
+                        name="- Amount",
+                        value=f"**{len(keys)}** keys",
+                        inline=True
+                    )
+                    log_embed.add_field(
+                        name="- Channel",
+                        value=interaction.channel.mention,
+                        inline=True
+                    )
+                    
                     if self.member:
-                        log_embed.add_field(name="👤 For", value=self.member.mention, inline=True)
+                        log_embed.add_field(
+                            name="- Redeemed For",
+                            value=f"{self.member.mention}\n**Name:** {self.member.name}\n**ID:** {self.member.id}",
+                            inline=True
+                        )
+                    
+                    # Show ALL keys in log
+                    if len(keys) <= 20:
+                        keys_log = ""
+                        for i, key in enumerate(keys, 1):
+                            keys_log += f"**#{i}:** `{key}`\n"
+                    else:
+                        keys_log = f"*{len(keys)} keys redeemed - check redeem.txt for full list*"
+                    
+                    log_embed.add_field(
+                        name="- Generated Keys",
+                        value=keys_log,
+                        inline=False
+                    )
+                    
                     log_embed.set_footer(text=f"Powered by {self.bot.config['powered_by']} | Dev: {self.bot.config['dev_name']}")
                     await log_channel.send(embed=log_embed)
-            except:
-                pass
-        
-        # Confirm to user
-        confirm_embed = discord.Embed(
-            title="✅ Success",
-            description=f"Successfully redeemed {len(keys)} {self.category} key(s)!",
-            color=discord.Color.green()
-        )
-        await interaction.followup.send(embed=confirm_embed, ephemeral=True)
+            except Exception as e:
+                print(f"Log error: {e}")
 
 async def setup(bot):
     await bot.add_cog(KeyCommands(bot))
