@@ -1,0 +1,34 @@
+{
+    "bot_name": "Keys Manager",
+    "bot_prefix": "?",
+    "dev_name": "SUBHAN",
+    "powered_by": "NOOB",
+    "embed_color": "#FF0000",
+    "bot_avatar_url": "https://cdn.discordapp.com/attachments/1431752584154189828/1499870171026948107/1000011560.png?ex=69f65e73&is=69f50cf3&hm=f9c5320a58749dbb1f178804f313a626621c22b54f6d823f683d5ff139a32a01&",
+    "log_channel_id": "1431752583801995388",
+    "allowed_role_ids": ["1499870411435933737", "1431752582656688170"],
+    "owner_ids": ["1262027340129505290"],
+    "category_names": {
+        "BP": "BP Keys",
+        "HK": "HK Keys"
+    },
+    "duration_names": {
+        "1h": "1 Hour",
+        "3h": "3 Hours",
+        "6h": "6 Hours",
+        "1d": "1 Day",
+        "3d": "3 Days",
+        "1w": "1 Week",
+        "2w": "2 Weeks",
+        "1m": "1 Month",
+        "2m": "2 Months",
+        "3m": "3 Months",
+        "lifetime": "Lifetime"
+    },
+    "panel_settings": {
+        "title": "KEY MANAGER PANEL",
+        "description": "Is Panel sy Key ko manage kr sakty ha.\n- New Keys Add Krna. \n- Bot ka Status. \n Keys Stock Check Krna. \n- And More Menu Per Click Kr ky Check Kro.",
+        "footer_text": "Powered: Noob | Developer: SUBHAN",
+        "thumbnail_url": "https://cdn.discordapp.com/attachments/1431752584154189828/1499870171026948107/1000011560.png?ex=69f65e73&is=69f50cf3&hm=f9c5320a58749dbb1f178804f313a626621c22b54f6d823f683d5ff139a32a01&"
+    }
+}
