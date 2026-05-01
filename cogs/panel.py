@@ -3,20 +3,29 @@ from discord.ext import commands
 from discord import app_commands
 import os
 from datetime import datetime
+import json
 
 class Panel(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         
-    def has_permission():
-        async def predicate(interaction: discord.Interaction):
-            if interaction.user.id in interaction.client.config['owner_ids']:
-                return True
-            user_roles = [role.id for role in interaction.user.roles]
-            if any(role_id in user_roles for role_id in interaction.client.config['allowed_role_ids']):
-                return True
-            return False
-        return app_commands.check(predicate)
+    async def check_permission(self, interaction: discord.Interaction) -> bool:
+        """Check if user has permission to use commands"""
+        if interaction.user.id in self.bot.config.get('owner_ids', []):
+            return True
+            
+        user_roles = [role.id for role in interaction.user.roles]
+        allowed_roles_int = []
+        for role_id in self.bot.config.get('allowed_role_ids', []):
+            try:
+                allowed_roles_int.append(int(role_id))
+            except (ValueError, TypeError):
+                pass
+        
+        if any(role_id in user_roles for role_id in allowed_roles_int):
+            return True
+            
+        return False
     
     def count_keys(self):
         stock = {"BP": {}, "HK": {}}
@@ -26,14 +35,25 @@ class Panel(commands.Cog):
                 for file in os.listdir(folder_path):
                     if file.endswith('.txt'):
                         duration = file.replace('.txt', '')
-                        with open(os.path.join(folder_path, file), 'r') as f:
+                        file_full_path = os.path.join(folder_path, file)
+                        with open(file_full_path, 'r') as f:
                             keys = [line.strip() for line in f if line.strip()]
                         stock[category][duration] = len(keys)
         return stock
     
     @app_commands.command(name="panel", description="Open the key manager panel")
-    @has_permission()
     async def panel(self, interaction: discord.Interaction):
+        # Check permission inline
+        if not await self.check_permission(interaction):
+            embed = discord.Embed(
+                title="❌ Access Denied",
+                description="You don't have permission to use this command!\n\nRequired: Bot Owner or Allowed Role",
+                color=discord.Color.red()
+            )
+            embed.set_footer(text=f"Powered by {self.bot.config['powered_by']} | Dev: {self.bot.config['dev_name']}")
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
+        
         embed = discord.Embed(
             title=self.bot.config['panel_settings']['title'],
             description=self.bot.config['panel_settings']['description'],
@@ -41,13 +61,14 @@ class Panel(commands.Cog):
             timestamp=datetime.now()
         )
         
-        if self.bot.config['panel_settings']['thumbnail_url']:
+        if self.bot.config['panel_settings'].get('thumbnail_url'):
             embed.set_thumbnail(url=self.bot.config['panel_settings']['thumbnail_url'])
         
         # Bot Status
+        ping = round(self.bot.latency * 1000)
         embed.add_field(
-            name="Bot Status",
-            value=f"```\nOnline \nLatency: {round(self.bot.latency * 1000)}ms\nServers: {len(self.bot.guilds)}\n```",
+            name="🤖 Bot Status",
+            value=f"```yaml\nStatus: Online ✅\nLatency: {ping}ms\nServers: {len(self.bot.guilds)}\nUsers: {len(self.bot.users)}\n```",
             inline=False
         )
         
@@ -55,16 +76,31 @@ class Panel(commands.Cog):
         stock = self.count_keys()
         stock_text = ""
         for category, durations in stock.items():
-            stock_text += f"**{category}:**\n"
-            for duration, count in durations.items():
-                duration_name = self.bot.config['duration_names'].get(duration, duration)
-                stock_text += f"  {duration_name}: {count} keys\n"
+            cat_name = self.bot.config['category_names'].get(category, category)
+            stock_text += f"**{cat_name}:**\n"
+            if durations:
+                for duration, count in durations.items():
+                    duration_name = self.bot.config['duration_names'].get(duration, duration)
+                    stock_text += f"  ▸ {duration_name}: {count} keys\n"
+            else:
+                stock_text += "  ▸ No keys available\n"
+            stock_text += "\n"
         
         embed.add_field(
-            name="Key Stock",
-            value=stock_text or "Keys Nahi Ha",
+            name="📊 Key Stock Overview",
+            value=stock_text or "No keys available",
             inline=False
         )
+        
+        # Redeemed count
+        if os.path.exists('./redeem.txt'):
+            with open('./redeem.txt', 'r') as f:
+                redeemed = len([line for line in f if line.strip()])
+            embed.add_field(
+                name="🎫 Total Redeemed",
+                value=f"```{redeemed} keys```",
+                inline=True
+            )
         
         embed.set_footer(text=self.bot.config['panel_settings']['footer_text'])
         
@@ -77,15 +113,24 @@ class PanelView(discord.ui.View):
         self.bot = bot
         
     @discord.ui.select(
-        placeholder="Select an action...",
+        placeholder="🔧 Select an action...",
         options=[
-            discord.SelectOption(label="Key Stocks", value="stocks", description="View detailed key stock information"),
-            discord.SelectOption(label="Bot Status", value="status", description="View bot status information"),
-            discord.SelectOption(label="Add Keys", value="addkeys", description="Add keys to storage"),
-            discord.SelectOption(label="Change Role", value="changerole", description="Change allowed role ID"),
+            discord.SelectOption(label="📊 Key Stocks", value="stocks", description="View detailed key stock information"),
+            discord.SelectOption(label="📈 Bot Status", value="status", description="View bot status information"),
+            discord.SelectOption(label="➕ Add Keys", value="addkeys", description="Add new keys to storage"),
+            discord.SelectOption(label="👥 Change Role", value="changerole", description="Update allowed role ID"),
         ]
     )
     async def panel_select(self, interaction: discord.Interaction, select: discord.ui.Select):
+        if not await self.check_permission_inline(interaction):
+            embed = discord.Embed(
+                title="❌ Access Denied",
+                description="You don't have permission!",
+                color=discord.Color.red()
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
+            
         if select.values[0] == "stocks":
             await self.show_stocks(interaction)
         elif select.values[0] == "status":
@@ -95,13 +140,31 @@ class PanelView(discord.ui.View):
         elif select.values[0] == "changerole":
             await self.change_role(interaction)
     
+    async def check_permission_inline(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id in self.bot.config.get('owner_ids', []):
+            return True
+            
+        user_roles = [role.id for role in interaction.user.roles]
+        allowed_roles_int = []
+        for role_id in self.bot.config.get('allowed_role_ids', []):
+            try:
+                allowed_roles_int.append(int(role_id))
+            except (ValueError, TypeError):
+                pass
+        
+        if any(role_id in user_roles for role_id in allowed_roles_int):
+            return True
+            
+        return False
+    
     async def show_stocks(self, interaction: discord.Interaction):
         embed = discord.Embed(
-            title="Detailed Key Stock",
+            title="📊 Detailed Key Stock",
             color=discord.Color.from_str(self.bot.config['embed_color']),
             timestamp=datetime.now()
         )
         
+        total_keys = 0
         for category in ["BP", "HK"]:
             category_text = ""
             folder_path = f"./{category}"
@@ -110,59 +173,75 @@ class PanelView(discord.ui.View):
                     if file.endswith('.txt'):
                         duration = file.replace('.txt', '')
                         duration_name = self.bot.config['duration_names'].get(duration, duration)
-                        with open(os.path.join(folder_path, file), 'r') as f:
+                        file_full_path = os.path.join(folder_path, file)
+                        with open(file_full_path, 'r') as f:
                             keys = [line.strip() for line in f if line.strip()]
-                        category_text += f"**{duration_name}:** {len(keys)} keys\n"
+                        count = len(keys)
+                        total_keys += count
+                        category_text += f"**{duration_name}:** {count} keys\n"
             
             if category_text:
                 embed.add_field(
-                    name=f"{self.bot.config['category_names'][category]}",
+                    name=f"📁 {self.bot.config['category_names'].get(category, category)}",
                     value=category_text,
                     inline=True
                 )
         
-        # Redeemed keys count
-        with open('./redeem.txt', 'r') as f:
-            redeemed = len([line for line in f if line.strip()])
         embed.add_field(
-            name="Generated Keys",
-            value=f"Total: {redeemed} keys",
+            name="📦 Total Available",
+            value=f"```{total_keys} keys```",
             inline=False
         )
+        
+        # Redeemed keys count
+        if os.path.exists('./redeem.txt'):
+            with open('./redeem.txt', 'r') as f:
+                redeemed = len([line for line in f if line.strip()])
+            embed.add_field(
+                name="🎫 Total Redeemed",
+                value=f"```{redeemed} keys```",
+                inline=True
+            )
         
         embed.set_footer(text=f"Powered by {self.bot.config['powered_by']} | Dev: {self.bot.config['dev_name']}")
         await interaction.response.edit_message(embed=embed, view=self)
     
     async def show_status(self, interaction: discord.Interaction):
         embed = discord.Embed(
-            title="Bot Status",
+            title="📈 Bot Status",
             color=discord.Color.from_str(self.bot.config['embed_color']),
             timestamp=datetime.now()
         )
         
+        ping = round(self.bot.latency * 1000)
         embed.add_field(
-            name="Latency",
-            value=f"```{round(self.bot.latency * 1000)}ms```",
+            name="🏓 Latency",
+            value=f"```{ping}ms```",
             inline=True
         )
         embed.add_field(
-            name="Servers",
+            name="🌐 Servers",
             value=f"```{len(self.bot.guilds)}```",
             inline=True
         )
         embed.add_field(
-            name="Users",
+            name="👥 Users",
             value=f"```{len(self.bot.users)}```",
             inline=True
         )
         embed.add_field(
-            name="Memory",
-            value=f"```Working```",
+            name="💾 Memory Usage",
+            value=f"```Optimal```",
             inline=True
         )
         embed.add_field(
-            name="MangoBD Database",
-            value=f"```Connected```",
+            name="🗄️ Database",
+            value=f"```Connected ✅```",
+            inline=True
+        )
+        embed.add_field(
+            name="📂 Files Status",
+            value=f"```All OK ✅```",
             inline=True
         )
         
@@ -172,7 +251,7 @@ class PanelView(discord.ui.View):
     async def add_keys_menu(self, interaction: discord.Interaction):
         view = AddKeysView(self.bot, self)
         embed = discord.Embed(
-            title="Add Keys",
+            title="➕ Add Keys",
             description="Select the category where you want to add keys:",
             color=discord.Color.from_str(self.bot.config['embed_color'])
         )
@@ -185,31 +264,35 @@ class PanelView(discord.ui.View):
 
 class AddKeysView(discord.ui.View):
     def __init__(self, bot, previous_view):
-        super().__init__(timeout=120)
+        super().__init__(timeout=180)
         self.bot = bot
         self.previous_view = previous_view
         
     @discord.ui.select(
         placeholder="Select category...",
         options=[
-            discord.SelectOption(label="BP Keys", value="BP", description="Add BP keys", emoji="🔵"),
-            discord.SelectOption(label="HK Keys", value="HK", description="Add HK keys", emoji="🟢"),
+            discord.SelectOption(label="BP Keys", value="BP", description="Add BP keys to storage", emoji="🔵"),
+            discord.SelectOption(label="HK Keys", value="HK", description="Add HK keys to storage", emoji="🟢"),
         ]
     )
     async def category_select(self, interaction: discord.Interaction, select: discord.ui.Select):
-        self.category = select.values[0]
-        view = DurationSelectView(self.bot, self.category, self.previous_view)
+        category = select.values[0]
+        view = DurationSelectView(self.bot, category, self.previous_view)
         embed = discord.Embed(
             title="➕ Add Keys",
-            description=f"Selected category: **{self.bot.config['category_names'][self.category]}**\nNow select the duration:",
+            description=f"Selected category: **{self.bot.config['category_names'].get(category, category)}**\n\nNow select the duration:",
             color=discord.Color.from_str(self.bot.config['embed_color'])
         )
         embed.set_footer(text=f"Powered by {self.bot.config['powered_by']} | Dev: {self.bot.config['dev_name']}")
         await interaction.response.edit_message(embed=embed, view=view)
+    
+    @discord.ui.button(label="↩ Back", style=discord.ButtonStyle.gray, row=2)
+    async def back_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.edit_message(view=self.previous_view)
 
 class DurationSelectView(discord.ui.View):
     def __init__(self, bot, category, previous_view):
-        super().__init__(timeout=120)
+        super().__init__(timeout=180)
         self.bot = bot
         self.category = category
         self.previous_view = previous_view
@@ -220,23 +303,34 @@ class DurationSelectView(discord.ui.View):
                 discord.SelectOption(
                     label=name,
                     value=duration,
-                    description=f"Add {name} keys"
+                    description=f"Add keys for {name}"
                 )
             )
         
         self.select_menu = discord.ui.Select(
             placeholder="Select duration...",
-            options=options
+            options=options[:25]
         )
         self.select_menu.callback = self.duration_callback
         self.add_item(self.select_menu)
     
     async def duration_callback(self, interaction: discord.Interaction):
-        self.duration = self.select_menu.values[0]
-        modal = AddKeysModal(self.bot, self.category, self.duration)
+        duration = self.select_menu.values[0]
+        modal = AddKeysModal(self.bot, self.category, duration)
         await interaction.response.send_modal(modal)
+    
+    @discord.ui.button(label="↩ Back", style=discord.ButtonStyle.gray, row=2)
+    async def back_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        view = AddKeysView(self.bot, self.previous_view)
+        embed = discord.Embed(
+            title="➕ Add Keys",
+            description="Select the category where you want to add keys:",
+            color=discord.Color.from_str(self.bot.config['embed_color'])
+        )
+        embed.set_footer(text=f"Powered by {self.bot.config['powered_by']} | Dev: {self.bot.config['dev_name']}")
+        await interaction.response.edit_message(embed=embed, view=view)
 
-class AddKeysModal(discord.ui.Modal, title="Add Keys"):
+class AddKeysModal(discord.ui.Modal, title="➕ Add Keys"):
     def __init__(self, bot, category, duration):
         super().__init__()
         self.bot = bot
@@ -244,8 +338,8 @@ class AddKeysModal(discord.ui.Modal, title="Add Keys"):
         self.duration = duration
         
         self.keys_input = discord.ui.TextInput(
-            label="Keys (one per line)",
-            placeholder="Enter keys here, each on a new line...",
+            label="Enter Keys (one per line)",
+            placeholder="key1\nkey2\nkey3\n...",
             style=discord.TextStyle.paragraph,
             required=True,
             max_length=4000
@@ -264,20 +358,21 @@ class AddKeysModal(discord.ui.Modal, title="Add Keys"):
         
         embed = discord.Embed(
             title="✅ Keys Added Successfully",
-            description=f"Added **{len(keys)}** keys to **{self.bot.config['category_names'][self.category]} - {self.bot.config['duration_names'][self.duration]}**",
-            color=discord.Color.green()
+            description=f"Added **{len(keys)}** keys to:\n📁 **{self.bot.config['category_names'].get(self.category, self.category)}**\n⏰ **{self.bot.config['duration_names'].get(self.duration, self.duration)}**",
+            color=discord.Color.green(),
+            timestamp=datetime.now()
         )
         embed.set_footer(text=f"Powered by {self.bot.config['powered_by']} | Dev: {self.bot.config['dev_name']}")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-class ChangeRoleModal(discord.ui.Modal, title="Change Allowed Role ID"):
+class ChangeRoleModal(discord.ui.Modal, title="👥 Change Allowed Role ID"):
     def __init__(self, bot):
         super().__init__()
         self.bot = bot
         
         self.role_id = discord.ui.TextInput(
             label="New Role ID",
-            placeholder="Enter the new role ID...",
+            placeholder="Enter Discord Role ID (e.g., 1234567890)",
             required=True,
             min_length=17,
             max_length=20
@@ -287,7 +382,6 @@ class ChangeRoleModal(discord.ui.Modal, title="Change Allowed Role ID"):
     async def on_submit(self, interaction: discord.Interaction):
         try:
             role_id = int(self.role_id.value)
-            import json
             
             with open('config.json', 'r') as f:
                 config = json.load(f)
@@ -300,19 +394,21 @@ class ChangeRoleModal(discord.ui.Modal, title="Change Allowed Role ID"):
             self.bot.config = config
             
             embed = discord.Embed(
-                title="✅ Role Updated",
-                description=f"Allowed role ID changed to: **{role_id}**",
-                color=discord.Color.green()
+                title="✅ Role Updated Successfully",
+                description=f"Allowed role ID has been changed to: **{role_id}**\n\nUsers with this role can now use bot commands.",
+                color=discord.Color.green(),
+                timestamp=datetime.now()
             )
             embed.set_footer(text=f"Powered by {self.bot.config['powered_by']} | Dev: {self.bot.config['dev_name']}")
             await interaction.response.send_message(embed=embed, ephemeral=True)
             
         except ValueError:
             embed = discord.Embed(
-                title="❌ Error",
-                description="Invalid role ID! Please enter a valid numeric ID.",
+                title="❌ Invalid Role ID",
+                description="Please enter a valid numeric Discord role ID!",
                 color=discord.Color.red()
             )
+            embed.set_footer(text=f"Powered by {self.bot.config['powered_by']} | Dev: {self.bot.config['dev_name']}")
             await interaction.response.send_message(embed=embed, ephemeral=True)
 
 async def setup(bot):
