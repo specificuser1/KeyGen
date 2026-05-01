@@ -37,14 +37,6 @@ class KeysManagerBot(commands.Bot):
         await self.tree.sync()
         print(f"Bot is ready! Logged in as {self.user}")
         
-    async def on_ready(self):
-        print(f'dsc.gg/warriorteam {self.user} has connected to Discord!')
-        await self.change_presence(
-            activity=discord.Activity(
-                type=discord.ActivityType.Playing,
-                name=f"MADE BY SUBHAN}"
-            )
-        )
 
 bot = KeysManagerBot()
 
