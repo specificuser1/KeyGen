@@ -40,7 +40,7 @@ class KeyCommands(commands.Cog):
                     files[file.replace('.txt', '')] = len(keys)
         return files
     
-    @app_commands.command(name="bp", description="Get BP keys from stock")
+    @app_commands.command(name="bp", description="Get Bypass keys")
     @app_commands.describe(
         member="Mention a member to send keys (optional)",
         amount="Number of keys to redeem (1-100, default: 1)"
@@ -80,7 +80,7 @@ class KeyCommands(commands.Cog):
             return
         
         embed = discord.Embed(
-            title="Available BP Keys",
+            title="Available Bypass Keys",
             description="Select a duration from the dropdown below:",
             color=discord.Color.from_str(self.bot.config['embed_color'])
         )
@@ -99,7 +99,7 @@ class KeyCommands(commands.Cog):
         view = KeySelectView(self.bot, "BP", member, amount)
         await interaction.followup.send(embed=embed, view=view, ephemeral=True)
     
-    @app_commands.command(name="hk", description="Get HK keys from stock")
+    @app_commands.command(name="hk", description="Get Hack keys")
     @app_commands.describe(
         member="Mention a member to send keys (optional)",
         amount="Number of keys to redeem (1-100, default: 1)"
@@ -139,7 +139,7 @@ class KeyCommands(commands.Cog):
             return
         
         embed = discord.Embed(
-            title="Available HK Keys",
+            title="Available Hack Keys",
             description="Select a duration from the dropdown below:",
             color=discord.Color.from_str(self.bot.config['embed_color'])
         )
@@ -285,11 +285,11 @@ class KeySelectView(discord.ui.View):
         if len(keys) <= 5:
             keys_display = ""
             for i, key in enumerate(keys, 1):
-                keys_display += f"**#{i}:** ||`{key}`||\n"
+                keys_display += f"**#{i}:** ```{key}```\n"
         else:
             keys_display = ""
             for i, key in enumerate(keys[:5], 1):
-                keys_display += f"**#{i}:** ||`{key}`||\n"
+                keys_display += f"**#{i}:** ```{key}```\n"
             keys_display += f"\n*... and {len(keys) - 5} more keys*"
         
         embed.add_field(
