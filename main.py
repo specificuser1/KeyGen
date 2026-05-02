@@ -4,7 +4,6 @@ import os
 from dotenv import load_dotenv
 import motor.motor_asyncio
 import json
-from cogs.panel import PersistentPanelView, Panel
 
 load_dotenv()
 
@@ -41,9 +40,6 @@ class KeysManagerBot(commands.Bot):
         except Exception as e:
             print(f"❌ Error loading cogs: {e}")
         
-        # Add persistent view
-        self.add_view(PersistentPanelView(self))
-        
         # Sync commands
         try:
             await self.tree.sync()
@@ -53,15 +49,15 @@ class KeysManagerBot(commands.Bot):
         
         print(f"✅ Bot is ready! Logged in as {self.user}")
 
-        #Bot Activity 
- #   async def on_ready(self):
-   #      print(f'{self.user} has connected to Discord!')
-    #    await self.change_presence(
-     #       activity=discord.Activity(
-      #          type=discord.ActivityType.watching,
-       #         name=f"Keys | Dev: {config['dev_name']}"
-       #     )
-      #  )
+        # Bot Activity
+   # async def on_ready(self):
+       # print(f'🌟 {self.user} has connected to Discord!')
+      #  await self.change_presence(
+         #   activity=discord.Activity(
+          #      type=discord.ActivityType.watching,
+        #        name=f"Keys | Dev: {config['dev_name']}"
+   #         )
+   #     )
         
         # Restore panels from database
         await self.restore_panels()
@@ -69,6 +65,7 @@ class KeysManagerBot(commands.Bot):
     async def restore_panels(self):
         """Restore panel views on all channels where they were previously loaded"""
         if self.db is None:
+            print("⚠️ MongoDB not available, skipping panel restoration")
             return
         
         try:
@@ -91,6 +88,7 @@ class KeysManagerBot(commands.Bot):
                         message = await channel.fetch_message(int(message_id))
                         
                         # Create fresh view and embed
+                        from cogs.panel import PersistentPanelView
                         view = PersistentPanelView(self)
                         panel_cog = self.get_cog('Panel')
                         if panel_cog:
@@ -98,7 +96,6 @@ class KeysManagerBot(commands.Bot):
                             await message.edit(embed=embed, view=view)
                             restored_count += 1
                     except discord.NotFound:
-                        # Message deleted, remove from DB
                         await self.db.panels.delete_one({"_id": panel_data["_id"]})
                     except Exception as e:
                         print(f"Error restoring panel {message_id}: {e}")
