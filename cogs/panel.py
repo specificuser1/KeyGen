@@ -44,8 +44,8 @@ class Panel(commands.Cog):
     async def panel(self, interaction: discord.Interaction):
         if not await self.check_permission(interaction):
             embed = discord.Embed(
-                title="❌ Access Denied",
-                description="You don't have permission to use this command!\n\nRequired: Bot Owner or Allowed Role",
+                title="Access Denied",
+                description="Gamd Masti Na Kr Loray.\n\nRequired Russian Pussy To Use This Command.",
                 color=discord.Color.red()
             )
             embed.set_footer(text=f"Powered by {self.bot.config['powered_by']} | Dev: {self.bot.config['dev_name']}")
@@ -72,8 +72,8 @@ class Panel(commands.Cog):
                 pass
         
         confirm_embed = discord.Embed(
-            title="✅ Panel Loaded",
-            description="Panel has been loaded in this channel successfully!\nIt will work even after bot restart.",
+            title="Panel Loaded",
+            description="Panel has been loaded in this channel\nIt will work even after bot restart.",
             color=discord.Color.green()
         )
         confirm_embed.set_footer(text=f"Powered by {self.bot.config['powered_by']} | Dev: {self.bot.config['dev_name']}")
@@ -82,7 +82,7 @@ class Panel(commands.Cog):
     @app_commands.command(name="reloadpanel", description="Reload panel if it stops working")
     async def reload_panel(self, interaction: discord.Interaction):
         if not await self.check_permission(interaction):
-            embed = discord.Embed(title="❌ Access Denied", description="You don't have permission!", color=discord.Color.red())
+            embed = discord.Embed(title="Access Denied", description="Gand Masti Na Kr Loray!", color=discord.Color.red())
             await interaction.response.send_message(embed=embed, ephemeral=True)
             return
         
@@ -103,15 +103,15 @@ class Panel(commands.Cog):
                         except:
                             pass
                     
-                    await interaction.response.send_message("✅ Panel reloaded successfully!", ephemeral=True)
+                    await interaction.response.send_message("Panel reload ho gaya ha!", ephemeral=True)
                     return
         
-        await interaction.response.send_message("❌ No panel found in this channel! Use /panel to create one.", ephemeral=True)
+        await interaction.response.send_message("❌ No panel found in this channel! Use ``/panel`` to create one.", ephemeral=True)
     
     def create_main_panel_embed(self):
         embed = discord.Embed(
             title=self.bot.config['panel_settings']['title'],
-            description=f"{self.bot.config['panel_settings']['description']}\n\n🔄 **This panel is persistent and works 24/7**",
+            description=f"{self.bot.config['panel_settings']['description']}\n\n**Chutt Chutt Chutt Chutt**",
             color=discord.Color.from_str(self.bot.config['embed_color']),
             timestamp=datetime.now()
         )
@@ -121,8 +121,8 @@ class Panel(commands.Cog):
         
         ping = round(self.bot.latency * 1000)
         embed.add_field(
-            name="🤖 Bot Status",
-            value=f"```yaml\nStatus: Online ✅\nLatency: {ping}ms\nServers: {len(self.bot.guilds)}\nUsers: {len(self.bot.users)}\n```",
+            name="Bot Status",
+            value=f"```yaml\nStatus: Mobile\nLatency: {ping}ms\nServers: {len(self.bot.guilds)}\nUsers: {len(self.bot.users)}\n```",
             inline=False
         )
         
@@ -139,15 +139,15 @@ class Panel(commands.Cog):
                 stock_text += "  ▸ No keys available\n"
             stock_text += "\n"
         
-        embed.add_field(name="📊 Key Stock Overview", value=stock_text or "No keys available", inline=False)
+        embed.add_field(name="Key Stock Overview", value=stock_text or "No keys available", inline=False)
         
         if os.path.exists('./redeem.txt'):
             with open('./redeem.txt', 'r') as f:
                 redeemed = len([line for line in f if line.strip()])
-            embed.add_field(name="🎫 Total Redeemed", value=f"```{redeemed} keys```", inline=True)
+            embed.add_field(name="Total Generated", value=f"```{redeemed} keys```", inline=True)
         
         durations_list = ", ".join([f"`{name}`" for name in self.bot.config['duration_names'].values()])
-        embed.add_field(name="⏰ Available Durations", value=durations_list, inline=False)
+        embed.add_field(name="Available Durations", value=durations_list, inline=False)
         
         embed.set_footer(text=self.bot.config['panel_settings']['footer_text'])
         return embed
@@ -159,14 +159,14 @@ class PersistentPanelView(discord.ui.View):
         self.bot = bot
         
         select_options = [
-            discord.SelectOption(label="🏠 Home", value="home", description="Return to main menu", emoji="🏠"),
-            discord.SelectOption(label="📊 Key Stocks", value="stocks", description="View detailed key stock information", emoji="📊"),
-            discord.SelectOption(label="📈 Bot Status", value="status", description="View bot status information", emoji="📈"),
-            discord.SelectOption(label="➕ Add Keys", value="addkeys", description="Add new keys to storage", emoji="➕"),
-            discord.SelectOption(label="🆕 New Duration", value="newduration", description="Create a new duration category", emoji="🆕"),
-            discord.SelectOption(label="❌ Remove Duration", value="removeduration", description="Permanently remove a duration", emoji="❌"),
-            discord.SelectOption(label="⏸️ Temp Remove Duration", value="tempremove", description="Temporarily hide a duration", emoji="⏸️"),
-            discord.SelectOption(label="👥 Change Role", value="changerole", description="Update allowed role ID", emoji="👥"),
+            discord.SelectOption(label="Refresh Panel", value="home", description="Refresh Panel See New Updates", emoji="♦️"),
+            discord.SelectOption(label="Key Stocks", value="stocks", description="View detailed key stock information", emoji="♦️"),
+            discord.SelectOption(label="Bot Status", value="status", description="View bot status information", emoji="♦️"),
+            discord.SelectOption(label="Add Keys", value="addkeys", description="Add new keys to storage", emoji="♦️"),
+            discord.SelectOption(label="New Duration", value="newduration", description="Create a new duration category", emoji="♦️"),
+            discord.SelectOption(label="Remove Duration", value="removeduration", description="Permanently remove a duration", emoji="♦️"),
+            discord.SelectOption(label="Temp Remove Duration", value="tempremove", description="Temporarily hide a duration", emoji="♦️"),
+            discord.SelectOption(label="Change Role", value="changerole", description="Update allowed role ID", emoji="♦️"),
         ]
         
         select_menu = discord.ui.Select(
@@ -181,7 +181,7 @@ class PersistentPanelView(discord.ui.View):
     
     async def panel_select_callback(self, interaction: discord.Interaction):
         if not await self.check_permission_inline(interaction):
-            embed = discord.Embed(title="❌ Access Denied", description="You don't have permission to use this panel!", color=discord.Color.red())
+            embed = discord.Embed(title=" Access Denied", description="Gand Masti Na Kr Loray!", color=discord.Color.red())
             embed.set_footer(text=f"Powered by {self.bot.config['powered_by']} | Dev: {self.bot.config['dev_name']}")
             await interaction.response.send_message(embed=embed, ephemeral=True)
             return
@@ -226,11 +226,11 @@ class PersistentPanelView(discord.ui.View):
         if panel_cog:
             embed = panel_cog.create_main_panel_embed()
         else:
-            embed = discord.Embed(title="🏠 Home", description="Main Panel", color=discord.Color.from_str(self.bot.config['embed_color']))
+            embed = discord.Embed(title="Home Menu", description="Main Panel", color=discord.Color.from_str(self.bot.config['embed_color']))
         await interaction.response.edit_message(embed=embed, view=self)
     
     async def show_stocks(self, interaction: discord.Interaction):
-        embed = discord.Embed(title="📊 Detailed Key Stock", color=discord.Color.from_str(self.bot.config['embed_color']), timestamp=datetime.now())
+        embed = discord.Embed(title="Key Stock", color=discord.Color.from_str(self.bot.config['embed_color']), timestamp=datetime.now())
         
         total_keys = 0
         for category in ["BP", "HK"]:
@@ -245,47 +245,47 @@ class PersistentPanelView(discord.ui.View):
                         duration_name = self.bot.config['duration_names'].get(duration, duration)
                         
                         if is_disabled:
-                            category_text += f"⏸️ **{duration_name}:** `DISABLED`\n"
+                            category_text += f"**{duration_name}:** `DISABLED`\n"
                         else:
                             file_full_path = os.path.join(folder_path, file)
                             with open(file_full_path, 'r') as f:
                                 keys = [line.strip() for line in f if line.strip()]
                             count = len(keys)
                             total_keys += count
-                            category_text += f"✅ **{duration_name}:** `{count}` keys\n"
+                            category_text += f"**{duration_name}:** `{count}` keys\n"
             
-            embed.add_field(name=f"📁 {self.bot.config['category_names'].get(category, category)}", value=category_text or "No files", inline=True)
+            embed.add_field(name=f"{self.bot.config['category_names'].get(category, category)}", value=category_text or "No files", inline=True)
         
-        embed.add_field(name="📦 Total Available", value=f"```{total_keys} keys```", inline=False)
+        embed.add_field(name="Total Available", value=f"```{total_keys} keys```", inline=False)
         
         if os.path.exists('./redeem.txt'):
             with open('./redeem.txt', 'r') as f:
                 redeemed = len([line for line in f if line.strip()])
-            embed.add_field(name="🎫 Total Redeemed", value=f"```{redeemed} keys```", inline=True)
+            embed.add_field(name="Total Generated", value=f"```{redeemed} keys```", inline=True)
         
         embed.set_footer(text=f"Powered by {self.bot.config['powered_by']} | Dev: {self.bot.config['dev_name']}")
         await interaction.response.edit_message(embed=embed, view=self)
     
     async def show_status(self, interaction: discord.Interaction):
-        embed = discord.Embed(title="📈 Bot Status", color=discord.Color.from_str(self.bot.config['embed_color']), timestamp=datetime.now())
+        embed = discord.Embed(title="Bot Status", color=discord.Color.from_str(self.bot.config['embed_color']), timestamp=datetime.now())
         
         ping = round(self.bot.latency * 1000)
-        embed.add_field(name="🏓 Latency", value=f"```{ping}ms```", inline=True)
-        embed.add_field(name="🌐 Servers", value=f"```{len(self.bot.guilds)}```", inline=True)
-        embed.add_field(name="👥 Users", value=f"```{len(self.bot.users)}```", inline=True)
-        embed.add_field(name="💾 Memory", value=f"```Optimal```", inline=True)
-        embed.add_field(name="🗄️ Database", value=f"```Connected ✅```", inline=True)
-        embed.add_field(name="📂 Files", value=f"```All OK ✅```", inline=True)
-        embed.add_field(name="🔄 Panel", value=f"```Active 24/7 ✅```", inline=True)
-        embed.add_field(name="👨‍💻 Dev", value=f"```{self.bot.config['dev_name']}```", inline=True)
-        embed.add_field(name="⚡ Power", value=f"```{self.bot.config['powered_by']}```", inline=True)
+        embed.add_field(name="- Latency", value=f"```{ping}ms```", inline=True)
+        embed.add_field(name="- Servers", value=f"```{len(self.bot.guilds)}```", inline=True)
+        embed.add_field(name="- Users", value=f"```{len(self.bot.users)}```", inline=True)
+        embed.add_field(name="- Memory", value=f"```Optimal```", inline=True)
+        embed.add_field(name="- Mango Database", value=f"```Connected```", inline=True)
+        embed.add_field(name="Files", value=f"```All OK```", inline=True)
+        embed.add_field(name="Hosting Platform", value=f"```Linux x64```", inline=True)
+        embed.add_field(name="Developer", value=f"```{self.bot.config['dev_name']}```", inline=True)
+        embed.add_field(name="Power By", value=f"```{self.bot.config['powered_by']}```", inline=True)
         
         embed.set_footer(text=f"Powered by {self.bot.config['powered_by']} | Dev: {self.bot.config['dev_name']}")
         await interaction.response.edit_message(embed=embed, view=self)
     
     async def add_keys_menu(self, interaction: discord.Interaction):
         view = AddKeysView(self.bot, self)
-        embed = discord.Embed(title="➕ Add Keys", description="Select the category where you want to add keys:", color=discord.Color.from_str(self.bot.config['embed_color']))
+        embed = discord.Embed(title="Add Keys", description="Select the category where you want to add keys:", color=discord.Color.from_str(self.bot.config['embed_color']))
         embed.set_footer(text=f"Powered by {self.bot.config['powered_by']} | Dev: {self.bot.config['dev_name']}")
         await interaction.response.edit_message(embed=embed, view=view)
     
@@ -359,7 +359,7 @@ class AddKeysView(discord.ui.View):
         embed.set_footer(text=f"Powered by {self.bot.config['powered_by']} | Dev: {self.bot.config['dev_name']}")
         await interaction.response.edit_message(embed=embed, view=view)
     
-    @discord.ui.button(label="🏠 Home", style=discord.ButtonStyle.gray, custom_id="addkeys_home_btn", row=2)
+    @discord.ui.button(label="Home Menu", style=discord.ButtonStyle.gray, custom_id="addkeys_home_btn", row=2)
     async def home_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         panel_cog = self.bot.get_cog('Panel')
         if panel_cog:
@@ -404,7 +404,7 @@ class DurationSelectView(discord.ui.View):
         modal = AddKeysModal(self.bot, self.category, duration)
         await interaction.response.send_modal(modal)
     
-    @discord.ui.button(label="🏠 Home", style=discord.ButtonStyle.gray, custom_id="duration_home_btn", row=2)
+    @discord.ui.button(label="Home Menu", style=discord.ButtonStyle.gray, custom_id="duration_home_btn", row=2)
     async def home_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         panel_cog = self.bot.get_cog('Panel')
         if panel_cog:
@@ -485,7 +485,7 @@ class RemoveDurationView(discord.ui.View):
         embed.set_footer(text=f"Powered by {self.bot.config['powered_by']} | Dev: {self.bot.config['dev_name']}")
         await interaction.response.edit_message(embed=embed, view=self.previous_view)
     
-    @discord.ui.button(label="🏠 Home", style=discord.ButtonStyle.gray, custom_id="remove_home_btn", row=2)
+    @discord.ui.button(label="Home Memu", style=discord.ButtonStyle.gray, custom_id="remove_home_btn", row=2)
     async def home_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.previous_view.show_home(interaction)
 
@@ -535,12 +535,12 @@ class ChangeRoleView(discord.ui.View):
         self.bot = bot
         self.previous_view = previous_view
     
-    @discord.ui.button(label="✏️ Change Role ID", style=discord.ButtonStyle.primary, custom_id="change_role_btn")
+    @discord.ui.button(label="Change Role ID", style=discord.ButtonStyle.primary, custom_id="change_role_btn")
     async def change_role_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
         modal = ChangeRoleModal(self.bot)
         await interaction.response.send_modal(modal)
     
-    @discord.ui.button(label="🏠 Home", style=discord.ButtonStyle.gray, custom_id="role_home_btn")
+    @discord.ui.button(label="Home Menu", style=discord.ButtonStyle.gray, custom_id="role_home_btn")
     async def home_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         panel_cog = self.bot.get_cog('Panel')
         if panel_cog:
@@ -548,7 +548,7 @@ class ChangeRoleView(discord.ui.View):
             await interaction.response.edit_message(embed=embed, view=self.previous_view)
 
 
-class NewDurationModal(discord.ui.Modal, title="🆕 Create New Duration"):
+class NewDurationModal(discord.ui.Modal, title="Create New Duration"):
     def __init__(self, bot):
         super().__init__()
         self.bot = bot
