@@ -4,7 +4,7 @@ import os
 from dotenv import load_dotenv
 import motor.motor_asyncio
 import json
-from pathlib import Path
+from cogs.panel import PersistentPanelView, Panel
 
 load_dotenv()
 
@@ -41,6 +41,9 @@ class KeysManagerBot(commands.Bot):
         except Exception as e:
             print(f"❌ Error loading cogs: {e}")
         
+        # Add persistent view
+        self.add_view(PersistentPanelView(self))
+        
         # Sync commands
         try:
             await self.tree.sync()
@@ -49,7 +52,65 @@ class KeysManagerBot(commands.Bot):
             print(f"❌ Error syncing commands: {e}")
         
         print(f"✅ Bot is ready! Logged in as {self.user}")
+
+        #Bot Activity 
+ #   async def on_ready(self):
+   #      print(f'{self.user} has connected to Discord!')
+    #    await self.change_presence(
+     #       activity=discord.Activity(
+      #          type=discord.ActivityType.watching,
+       #         name=f"Keys | Dev: {config['dev_name']}"
+       #     )
+      #  )
         
+        # Restore panels from database
+        await self.restore_panels()
+    
+    async def restore_panels(self):
+        """Restore panel views on all channels where they were previously loaded"""
+        if self.db is None:
+            return
+        
+        try:
+            panels = await self.db.panels.find({}).to_list(length=None)
+            restored_count = 0
+            
+            for panel_data in panels:
+                try:
+                    channel_id = panel_data.get('channel_id')
+                    message_id = panel_data.get('message_id')
+                    
+                    if not channel_id or not message_id:
+                        continue
+                    
+                    channel = self.get_channel(int(channel_id))
+                    if not channel:
+                        continue
+                    
+                    try:
+                        message = await channel.fetch_message(int(message_id))
+                        
+                        # Create fresh view and embed
+                        view = PersistentPanelView(self)
+                        panel_cog = self.get_cog('Panel')
+                        if panel_cog:
+                            embed = panel_cog.create_main_panel_embed()
+                            await message.edit(embed=embed, view=view)
+                            restored_count += 1
+                    except discord.NotFound:
+                        # Message deleted, remove from DB
+                        await self.db.panels.delete_one({"_id": panel_data["_id"]})
+                    except Exception as e:
+                        print(f"Error restoring panel {message_id}: {e}")
+                        
+                except Exception as e:
+                    print(f"Error processing panel data: {e}")
+            
+            if restored_count > 0:
+                print(f"✅ Restored {restored_count} panel(s)")
+                
+        except Exception as e:
+            print(f"Error restoring panels: {e}")
 
 bot = KeysManagerBot()
 
